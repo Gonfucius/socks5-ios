@@ -1,1 +1,44 @@
+name: Build Socks5 IPA
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode information
+        run: |
+          xcodebuild -version
+          xcodebuild -project Socks5.xcodeproj -list
+
+      - name: Build iOS app
+        run: |
+          mkdir -p "$RUNNER_TEMP/build"
+
+          xcodebuild \
+            -project Socks5.xcodeproj \
+            -scheme Socks5 \
+            -sdk iphoneos \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/build"
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R "$RUNNER_TEMP/build/Socks5.app" Payload/Socks5.app
+          zip -r Socks5-unsigned.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Socks5-iOS
+          path: Socks5-unsigned.ipa
